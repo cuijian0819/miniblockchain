@@ -2,28 +2,44 @@ import hashlib
 import json
 from time import time
 
+class Transaction:
+    def __init__(self, sender_addr, recipient_addr, amount):
+        self.sender_addr = sender_addr
+        self.recipient_addr  =  recipient_addr
+        self.amount = amount
+
 class Block:
-    def __init__(self, index, timestamp, data, previous_hash):
+    def __init__(self, index, timestamp, data, nonce, previous_hash):
         self.index = index
         self.timestamp = timestamp
         self.data = data
+        self.nonce = nonce
         self.previous_hash = previous_hash
         self.hash =self.hash_block()
 
     def hash_block(self):
         sha = hashlib.sha256()
-        sha.update((str(self.index) +
-                   str(self.timestamp) +
-                   str(self.data) +
+        sha.update((str(self.index) +str(self.timestamp) +
+                   str(self.data) +str(self.nonce) +
                    str(self.previous_hash)).encode())
+
         return sha.hexdigest()
+
+    def mine(self, difficulty):
+        while [v for v in self.hash[0:difficulty]] != ['0' for v in range(0, difficulty)]:
+            self.nonce += 1
+            print(self.nonce)
+            self.hash = self.hash_block()
+        print("mining success")
 
 class Blockchain(object):
     def __init__(self):
+        self.difficulty = 3
         self.chain = []
         self.current_transactions = []
         # create genesis block
-        self.genesis_block = Block(0, time(), "Genesis Block", "0")
+        self.genesis_block = Block(0, time(), "Genesis Block", 0, "0")
+        self.genesis_block.mine(self.difficulty)
         self.chain.append(self.genesis_block)
     def last_block(self):
         return self.chain[-1]
@@ -31,16 +47,14 @@ class Blockchain(object):
     def new_block(self, last_block):
         last_block = self.chain[-1]
         new_block = Block(len(self.chain)+1, time(),
-                          self.current_transactions, last_block.hash)
+                          self.current_transactions, 0, last_block.hash)
+        new_block.mine(self.difficulty)
         self.chain.append(new_block)
         return new_block
 
     def new_transaction(self, sender, recipient, amount):
-        self.current_transactions.append({
-            'sender': sender,
-            'recipient': recipient,
-            'amount': amount,
-        })
+        self.current_transactions.append(Transaction(sender, recipient, amount))
+
     def hash(block):
         block_string = json.dumps(block, sort_keys = True).encoded()
         return hashlib.sha256(block_string).hexdigest()
@@ -53,7 +67,6 @@ blockchain.new_block(blockchain.last_block())
 block = blockchain.last_block()
 for x in range(len(block.data)):
     print(block.data[x])
-
 print(block.previous_hash)
 print(block.hash)
 
